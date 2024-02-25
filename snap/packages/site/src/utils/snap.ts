@@ -58,9 +58,29 @@ export const getSnap = async (version?: string): Promise<Snap | undefined> => {
  */
 
 export const sendHello = async () => {
+  console.log({
+    to: '0x6b175474e89094c44da98b954eedeac495271d0f',
+    from: '0x08cFE6B091088f42807B3a01fdAe196E4bA981b8',
+    data: '0x70a08231000000000000000000000000fa9f52dee9172d22d01df17d5dbd48135cfaf028',
+  });
+
+  const accounts: any = await window.ethereum.request({
+    method: 'eth_requestAccounts',
+    params: [],
+  });
+
+  console.log('accounts', accounts);
+
   await window.ethereum.request({
-    method: 'wallet_invokeSnap',
-    params: { snapId: defaultSnapOrigin, request: { method: 'hello' } },
+    method: 'eth_sendTransaction',
+    params: {
+      from: '0xb934f1d4d61eeb6f691070e0556bf756ceca0de7',
+      gas: '0x5208',
+      to: '0x08cfe6b091088f42807b3a01fdae196e4ba981b8',
+      value: '0x38d7ea4c68000',
+      maxFeePerGas: '0x59682f0b',
+      maxPriorityFeePerGas: '0x59682f00',
+    },
   });
 };
 
