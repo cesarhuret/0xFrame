@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import { IERC20 } from "./IERC20.sol";
-import { CCIP } from "./CCIP.sol";
+import { CCIP } from "./ccip.sol";
 
 // A partial WETH interfaec.
 interface IWETH is IERC20 {
