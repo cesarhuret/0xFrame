@@ -25,10 +25,8 @@ For example, if you want to deposit USDT to Base but only have ETH on Arbitrum, 
 
 #### Frontend
 
-<p float="left">
-  <img src="https://github.com/cesarhuret/0xFrame/assets/67405604/2da02ef1-a080-4de2-8d2b-b1941df3e6d6" width="400" /> 
-  <img src="https://github.com/cesarhuret/0xFrame/assets/67405604/cd2d9f97-de04-49c9-aca8-8c446cc323ea" width="500" />
-</p>
+![](https://github.com/cesarhuret/0xFrame/assets/67405604/2da02ef1-a080-4de2-8d2b-b1941df3e6d6) | ![](https://github.com/cesarhuret/0xFrame/assets/67405604/cd2d9f97-de04-49c9-aca8-8c446cc323ea)
+:-------------------------:|:-------------------------:
 
 ### Local Development
 
