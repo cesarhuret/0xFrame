@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
 import {OwnerIsCreator} from "@chainlink/contracts-ccip/src/v0.8/shared/access/OwnerIsCreator.sol";
 import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
-import {IERC20} from "@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "./IERC20.sol";
 
 // Ethereum Sepolia LINK: 0x779877A7B0D9E8603169DdbD7836e478b4624789
 
@@ -20,7 +20,7 @@ import {IERC20} from "@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-sol
 // Arbitrum Sepolia Router:	0x2a9C5afB0d0e4BAb2BCdaE109EC4b0c4Be15a165
 // Base Sepolia Router: 0xD3b06cEbF099CE7DA4AcCf578aaebFDBd6e88a93
 
-contract TokenTransferor is OwnerIsCreator {
+contract CCIP is OwnerIsCreator {
     error NotEnoughBalance(uint256 currentBalance, uint256 calculatedFees); 
     error NothingToWithdraw(); 
     error FailedToWithdrawEth(address owner, address target, uint256 value); 
@@ -36,21 +36,10 @@ contract TokenTransferor is OwnerIsCreator {
         uint256 fees 
     );
 
-    mapping(uint64 => bool) public allowlistedChains;
-
     IRouterClient private s_router;
 
-    IERC20 private s_linkToken;
-
-    constructor(address _router, address _link) {
+    constructor(address _router) {
         s_router = IRouterClient(_router);
-        s_linkToken = IERC20(_link);
-    }
-
-    modifier onlyAllowlistedChain(uint64 _destinationChainSelector) {
-        if (!allowlistedChains[_destinationChainSelector])
-            revert DestinationChainNotAllowlisted(_destinationChainSelector);
-        _;
     }
 
     modifier validateReceiver(address _receiver) {
@@ -58,31 +47,17 @@ contract TokenTransferor is OwnerIsCreator {
         _;
     }
 
-    function allowlistDestinationChain(
-        uint64 _destinationChainSelector,
-        bool allowed
-    ) external onlyOwner {
-        allowlistedChains[_destinationChainSelector] = allowed;
-    }
-
-
-    function transferTokensPayLINK(
+    function estimateFee(
         uint64 _destinationChainSelector,
         address _receiver,
         address _token,
         uint256 _amount
-    )
-        external
-        onlyOwner
-        onlyAllowlistedChain(_destinationChainSelector)
-        validateReceiver(_receiver)
-        returns (bytes32 messageId)
-    {
+    ) external view returns (uint256) {
         Client.EVM2AnyMessage memory evm2AnyMessage = _buildCCIPMessage(
             _receiver,
             _token,
             _amount,
-            address(s_linkToken)
+            address(0)
         );
 
         uint256 fees = s_router.getFee(
@@ -90,41 +65,16 @@ contract TokenTransferor is OwnerIsCreator {
             evm2AnyMessage
         );
 
-        if (fees > s_linkToken.balanceOf(address(this)))
-            revert NotEnoughBalance(s_linkToken.balanceOf(address(this)), fees);
-
-        s_linkToken.approve(address(s_router), fees);
-
-        IERC20(_token).approve(address(s_router), _amount);
-
-        messageId = s_router.ccipSend(
-            _destinationChainSelector,
-            evm2AnyMessage
-        );
-
-        emit TokensTransferred(
-            messageId,
-            _destinationChainSelector,
-            _receiver,
-            _token,
-            _amount,
-            address(s_linkToken),
-            fees
-        );
-
-        return messageId;
+        return fees;
     }
 
-
-    function transferTokensPayNative(
+    function bridge(
         uint64 _destinationChainSelector,
         address _receiver,
         address _token,
         uint256 _amount
     )
-        external
-        onlyOwner
-        onlyAllowlistedChain(_destinationChainSelector)
+        internal
         validateReceiver(_receiver)
         returns (bytes32 messageId)
     {
@@ -164,7 +114,6 @@ contract TokenTransferor is OwnerIsCreator {
         return messageId;
     }
 
-
     function _buildCCIPMessage(
         address _receiver,
         address _token,
@@ -190,24 +139,5 @@ contract TokenTransferor is OwnerIsCreator {
             });
     }
 
-    function withdraw(address _beneficiary) public onlyOwner {
-        uint256 amount = address(this).balance;
-
-        if (amount == 0) revert NothingToWithdraw();
-
-        (bool sent, ) = _beneficiary.call{value: amount}("");
-
-        if (!sent) revert FailedToWithdrawEth(msg.sender, _beneficiary, amount);
-    }
-
-    function withdrawToken(
-        address _beneficiary,
-        address _token
-    ) public onlyOwner {
-        uint256 amount = IERC20(_token).balanceOf(address(this));
-
-        if (amount == 0) revert NothingToWithdraw();
-
-        IERC20(_token).transfer(_beneficiary, amount);
-    }
+    receive() external payable {}
 }
